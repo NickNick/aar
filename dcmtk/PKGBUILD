@@ -1,0 +1,52 @@
+# Author: Miguel Useche <migueluseche@skatox.com>
+# Maintainer: Miguel Useche <migueluseche@skatox.com>
+# Contributor: Xiao-Long Chen <chenxiaolong@cxl.epac.to>
+
+# Most of this PKGBUILD + patches were taken from Fedora's dcmtk spec file, so thanks to the Fedora packagers for making this package work!
+
+pkgname=dcmtk
+pkgver=7d23246
+pkgrel=1
+pkgdesc="a collection of libraries and applications implementing large parts the DICOM standard"
+arch=('i686' 'x86_64')
+url="http://dicom.offis.de/dcmtk"
+license=('other')
+depends=('zlib' 'libpng' 'libtiff' 'libxml2' 'openssl' 'charls' 'libssh')
+makedepends=('cmake' 'make')
+source=("${pkgname}::git+https://github.com/NickNick/arch-dcmtk.git")
+sha512sums=('SKIP')
+
+pkgver() {
+	cd "$srcdir/$pkgname"
+	git describe --always --long | sed -E 's/([^-]*-g)/r\1/;s/-/./g'
+}
+
+build() {
+	cd "$srcdir/$pkgname"
+	cmake \
+		-DCMAKE_INSTALL_PREFIX="/usr"\
+		-DCMAKE_BUILD_TYPE:STRING="Release"\
+		-DBUILD_SHARED_LIBS:BOOL=ON \
+		-DDCMTK_WITH_OPENSSL:BOOL=OFF\
+		-DDCMTK_WITH_PNG:BOOL=ON\
+		-DDCMTK_WITH_PRIVATE_TAGS:BOOL=ON\
+		-DDCMTK_WITH_TIFF:BOOL=ON\
+		-DDCMTK_WITH_XML:BOOL=ON\
+		-DDCMTK_WITH_CHARLS=ON\
+		-DDCMTK_WITH_ZLIB:BOOL=ON\
+		.
+	make
+}
+
+package() {
+	cd "$srcdir/$pkgname"
+	make DESTDIR="${pkgdir}/" install
+
+	# Move configuration files from /usr/etc to /etc
+	mv "${pkgdir}/usr/etc/" "${pkgdir}/"
+
+	# Remove empty files (0 length)
+	find "${pkgdir}" -type f -empty -exec rm -v {} \;
+
+	install -dm755 "${pkgdir}/usr/lib/"
+}
